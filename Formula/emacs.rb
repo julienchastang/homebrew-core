@@ -24,9 +24,15 @@ class Emacs < Formula
   depends_on "pkg-config" => :build
   depends_on "gnutls"
   depends_on "jansson"
+  depends_on :x11 => :optional
 
   uses_from_macos "libxml2"
   uses_from_macos "ncurses"
+  # https://github.com/Homebrew/homebrew/issues/37803
+  if build.with? "x11"
+    depends_on "freetype" => :recommended
+    depends_on "fontconfig" => :recommended
+  end
 
   on_linux do
     depends_on "jpeg"
@@ -44,7 +50,6 @@ class Emacs < Formula
       --infodir=#{info}/emacs
       --prefix=#{prefix}
       --with-gnutls
-      --without-x
       --with-xml2
       --without-dbus
       --with-modules
@@ -58,6 +63,16 @@ class Emacs < Formula
       system "./autogen.sh"
     end
 
+    if build.with? "x11"
+      # These libs are not specified in xft's .pc. See:
+      # https://trac.macports.org/browser/trunk/dports/editors/emacs/Portfile#L74
+      # https://github.com/Homebrew/homebrew/issues/8156
+      ENV.append "LDFLAGS", "-lfreetype -lfontconfig"
+      args << "--with-x"
+      args << "--with-gif=no" << "--with-tiff=no" << "--with-jpeg=no"
+    else
+      args << "--without-x"
+    end
     File.write "lisp/site-load.el", <<~EOS
       (setq exec-path (delete nil
         (mapcar
