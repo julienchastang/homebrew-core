@@ -24,15 +24,18 @@ class Emacs < Formula
   depends_on "pkg-config" => :build
   depends_on "gnutls"
   depends_on "jansson"
-  depends_on :x11 => :optional
+  depends_on "libx11"
+  depends_on "libxcb"
+  depends_on "libxt"
+  depends_on "libxext"
+  depends_on "libxrender"
+  depends_on "cairo"
+  depends_on "freetype" => :recommended
+  depends_on "fontconfig" => :recommended
 
   uses_from_macos "libxml2"
   uses_from_macos "ncurses"
   # https://github.com/Homebrew/homebrew/issues/37803
-  if build.with? "x11"
-    depends_on "freetype" => :recommended
-    depends_on "fontconfig" => :recommended
-  end
 
   on_linux do
     depends_on "jpeg"
@@ -56,6 +59,11 @@ class Emacs < Formula
       --without-ns
       --without-imagemagick
       --without-selinux
+      --with-x
+      --with-cairo
+      --with-gif=no
+      --with-tiff=no
+      --with-jpeg=no
     ]
 
     if build.head?
@@ -63,16 +71,6 @@ class Emacs < Formula
       system "./autogen.sh"
     end
 
-    if build.with? "x11"
-      # These libs are not specified in xft's .pc. See:
-      # https://trac.macports.org/browser/trunk/dports/editors/emacs/Portfile#L74
-      # https://github.com/Homebrew/homebrew/issues/8156
-      ENV.append "LDFLAGS", "-lfreetype -lfontconfig"
-      args << "--with-x"
-      args << "--with-gif=no" << "--with-tiff=no" << "--with-jpeg=no"
-    else
-      args << "--without-x"
-    end
     File.write "lisp/site-load.el", <<~EOS
       (setq exec-path (delete nil
         (mapcar
